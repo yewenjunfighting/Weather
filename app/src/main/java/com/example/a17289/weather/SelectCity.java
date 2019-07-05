@@ -10,6 +10,7 @@ import android.widget.AdapterView;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.ListView;
+import android.widget.TextView;
 
 import com.example.a17289.app.MyApplication;
 import com.example.a17289.bean.City;
@@ -28,6 +29,7 @@ public class SelectCity extends Activity implements View.OnClickListener{
     private ListView mList;
     private  List<City> cityList;
     private MyAdapter myadapter;
+    private TextView title;
     private List<City> filterDateList = new ArrayList<>();
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -46,6 +48,12 @@ public class SelectCity extends Activity implements View.OnClickListener{
         mList = (ListView) findViewById(R.id.city_list);
         // myApplication 里包含City类型的数据列
         MyApplication myApplication = (MyApplication) getApplication();
+        title = (TextView) findViewById(R.id.title_name);
+        // 设置当前城市
+        Intent intent = getIntent();
+        String currentCityName = intent.getStringExtra("currentCityName");
+        // 设置当前的标题
+        title.setText("当前城市 " + currentCityName.substring(0, 2));
 
         // 获得ArrayList<City>类型的数据列表
         cityList = myApplication.getCityList();
@@ -60,6 +68,7 @@ public class SelectCity extends Activity implements View.OnClickListener{
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int position, long l) {
                 City city = filterDateList.get(position);
+                // 接收从MainActivity传过来的数据 currentCityName
                 Intent i = new Intent();
                 i.putExtra("cityCode", city.getNumber());
                 setResult(RESULT_OK, i);
@@ -70,6 +79,8 @@ public class SelectCity extends Activity implements View.OnClickListener{
 
     @Override
     public void onClick(View v) {
+        // 点击的时候销毁城市列表活动
+        // 并把城市的编号传过去
         switch(v.getId()) {
             case R.id.title_back:
                 Intent i = new Intent();

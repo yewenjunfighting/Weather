@@ -223,6 +223,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 //          }
         if(view.getId() == R.id.title_city_manager) {
             Intent i = new Intent(this, SelectCity.class);
+            Log.d("currentCityName", city_name_Tv.getText().toString());
+            i.putExtra("currentCityName", city_name_Tv.getText());
             // 切换到选择城市界面
             //startActivity(i);
             startActivityForResult(i, 1);
@@ -402,7 +404,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         weekTv.setText(todayWeather.getDate());
         temperatureTv.setText(todayWeather.getHigh()+"~"+todayWeather.getLow());
         climateTv.setText(todayWeather.getType());
-        windTv.setText("风力:"+todayWeather.getFengli());
+        windTv.setText("风力:" + todayWeather.getFengli());
         // 更新指示天气的图像
         updateWeatherImg(todayWeather.getType());
 
