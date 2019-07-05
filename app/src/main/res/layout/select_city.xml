@@ -40,7 +40,7 @@
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
             android:layout_margin="4.0dip"
-            android:hint="搜索全国城市(中文)"
+            android:hint="@string/search_word"
             android:drawableLeft="@drawable/magnifying_glass"
             android:maxLines="1"
             android:background="@drawable/contact_search_box_edittext_keyword_background"

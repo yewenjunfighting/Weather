@@ -5,6 +5,10 @@ import android.content.Intent;
 import android.media.Image;
 import android.media.ImageWriter;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextUtils;
+import android.text.TextWatcher;
+import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.EditText;
@@ -15,14 +19,17 @@ import android.widget.TextView;
 import com.example.a17289.app.MyApplication;
 import com.example.a17289.bean.City;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 /**
  * Created by 17289 on 2019/6/29.
  */
 
-public class SelectCity extends Activity implements View.OnClickListener{
+public class SelectCity extends Activity implements View.OnClickListener {
+    public static Date start = null;
     private String currentCode;
     private String currentCityName;
     private ImageView mBackBtn;
@@ -32,20 +39,44 @@ public class SelectCity extends Activity implements View.OnClickListener{
     private MyAdapter myadapter;
     private TextView title;
     private List<City> filterDateList = new ArrayList<>();
+    //private ClearEditText mClearEditText;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.select_city);
         // 初始化列表
         initViews();
+//        mClearEditText = (ClearEditText) findViewById(R.id.search_city);
+//
+//        mClearEditText.addTextChangedListener(new TextWatcher() {
+//            @Override
+//            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+//                return ;
+//            }
+//
+//            @Override
+//            public void onTextChanged(CharSequence s, int start, int before, int count) {
+//               // 当输入框里面的值为空,更新为原来的列表, 否则为过滤数据列表
+//                filterData(s.toString());
+//                mList.setAdapter(myadapter);
+//            }
+//
+//            @Override
+//            public void afterTextChanged(Editable s) {
+//               retutn ;
+//            }
+//        });
+
     }
 
     private void initViews() {
+        SelectCity.start = new Date();
         //为mBackBtn设置监听事件
         mBackBtn = (ImageView) findViewById(R.id.title_back);
         mBackBtn.setOnClickListener(this);
         // 搜索框
         mEditText = (EditText) findViewById(R.id.search_city);
+        textListener();
         mList = (ListView) findViewById(R.id.city_list);
         // myApplication 里包含City类型的数据列
         MyApplication myApplication = (MyApplication) getApplication();
@@ -95,5 +126,53 @@ public class SelectCity extends Activity implements View.OnClickListener{
             default:
                 break;
         }
+    }
+
+    // 根据输入框里的值来过滤数据并更新ListView
+    private void filterData(String filterStr) {
+        filterDateList = new ArrayList<City>();
+        Log.d("Filter", filterStr);
+        if(TextUtils.isEmpty(filterStr)) {
+            for(City city : cityList) {
+                filterDateList.add(city);
+            }
+        }else{
+            filterDateList.clear();
+            for(City city : cityList) {
+                if(city.getCity().indexOf(filterStr.toString()) != -1) {
+                    filterDateList.add(city);
+                }
+            }
+        }
+        //myadapter.updateListView(filterDateList);
+        myadapter = new MyAdapter(SelectCity.this, R.layout.city_item, filterDateList);
+        mList.setAdapter(myadapter);
+    }
+
+    private void textListener() {
+        mEditText.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                Log.d("search_string: ", s.toString());
+                Date now = new Date();
+                Log.d("time: ", now.getTime() + "");
+                // 节流操作
+                if(now.getTime() - SelectCity.start.getTime() >= 500) {
+                    SelectCity.start = new Date(now.getTime());
+                    Log.d("触发频率", "500毫秒触发一次");
+                    filterData(s.toString());
+                }
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+
+            }
+        });
     }
 }
