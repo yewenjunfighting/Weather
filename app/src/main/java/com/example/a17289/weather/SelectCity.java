@@ -23,7 +23,8 @@ import java.util.List;
  */
 
 public class SelectCity extends Activity implements View.OnClickListener{
-
+    private String currentCode;
+    private String currentCityName;
     private ImageView mBackBtn;
     private EditText mEditText;
     private ListView mList;
@@ -51,7 +52,10 @@ public class SelectCity extends Activity implements View.OnClickListener{
         title = (TextView) findViewById(R.id.title_name);
         // 设置当前城市
         Intent intent = getIntent();
-        String currentCityName = intent.getStringExtra("currentCityName");
+        // 保存当前的城市代码
+        currentCode = intent.getStringExtra("currentCityCode");
+        // 保存当前的城市名称
+        currentCityName = intent.getStringExtra("currentCityName");
         // 设置当前的标题
         title.setText("当前城市 " + currentCityName.substring(0, 2));
 
@@ -84,7 +88,7 @@ public class SelectCity extends Activity implements View.OnClickListener{
         switch(v.getId()) {
             case R.id.title_back:
                 Intent i = new Intent();
-                i.putExtra("cityCode", "101160101");
+                i.putExtra("cityCode", currentCode);
                 setResult(RESULT_OK, i);
                 finish();
                 break;

@@ -45,6 +45,7 @@ import java.net.URL;
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
     private EditText textUser;
     private EditText textPass;
+    private String currentCityCode = "101010800";
     private static final int UPDATE_TODAY_WEATHER = 1;
     private static final String WEATHER_BAOXUE = "暴雪";
     private static final String WEATHER_BAOYU = "暴雨";
@@ -114,6 +115,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         temperatureTv.setText("N/A");
         climateTv.setText("N/A");
         windTv.setText("N/A");
+        queryWeatherCode(currentCityCode);
     }
 
     @Override
@@ -225,6 +227,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             Intent i = new Intent(this, SelectCity.class);
             Log.d("currentCityName", city_name_Tv.getText().toString());
             i.putExtra("currentCityName", city_name_Tv.getText());
+            i.putExtra("currentCityCode", currentCityCode);
             // 切换到选择城市界面
             //startActivity(i);
             startActivityForResult(i, 1);
@@ -232,13 +235,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         if(view.getId() == R.id.title_update_btn) {
             // SharedPreferences用于数据的存储与读取
-            SharedPreferences sharedPreferences = getSharedPreferences("config", MODE_PRIVATE);
-            String cityCode = sharedPreferences.getString("main_city_code", "101010100");
+            ///SharedPreferences sharedPreferences = getSharedPreferences("config", MODE_PRIVATE);
+            //String cityCode = sharedPreferences.getString("main_city_code", "101010100");
             // 太原城市代码
             //String cityCode = sharedPreferences.getString("main_city_code", "101160101");
-            Log.d("myWeather", cityCode);
+            //Log.d("myWeather", cityCode);
             // 根据城市的编号查询天气情况
-            queryWeatherCode(cityCode);
+            queryWeatherCode(currentCityCode);
         }
     }
 
@@ -481,6 +484,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if(requestCode == 1 && resultCode == RESULT_OK) {
             String newCityCode = data.getStringExtra("cityCode");
+            // 记录下newCityCode， 刷新的时候要用到
+            currentCityCode = newCityCode;
             Log.d("weather", "选择的城市代码为" + newCityCode);
             // 如果网络可用, 就请求新的天气数据
             if(NetUtil.getNetworkState(this) != NetUtil.NETWORK_NONE) {
