@@ -2,6 +2,7 @@ package com.example.a17289.weather;
 
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Color;
 import android.media.Image;
 import android.os.Handler;
 import android.os.Message;
@@ -11,8 +12,12 @@ import android.os.Bundle;
 import com.example.a17289.bean.TodayWeather;
 import com.example.a17289.util.NetUtil;
 
+import android.text.Editable;
 import android.text.Html;
+import android.text.TextWatcher;
 import android.view.View;
+import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -31,8 +36,15 @@ import java.io.StringReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
-public class MainActivity extends AppCompatActivity implements View.OnClickListener{
+// dp * ppi / 160 = px
+// mdpi -> 160
+// hdpi -> 240
+// xxdpi -> 320
+// xxdpi -> 480
 
+public class MainActivity extends AppCompatActivity implements View.OnClickListener {
+    private EditText textUser;
+    private EditText textPass;
     private static final int UPDATE_TODAY_WEATHER = 1;
     private static final String WEATHER_BAOXUE = "暴雪";
     private static final String WEATHER_BAOYU = "暴雨";
@@ -57,7 +69,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     private ImageView mUpdateBtn;
     private ImageView mCitySelect;
-
+    private Button btn;
     private TextView cityTv, timeTv, humidityTv, weekTv, pmDataTv, pmQualityTv,
             temperatureTv, climateTv, windTv, city_name_Tv;
     private ImageView weatherImg, pmImg;
@@ -107,9 +119,23 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        // 加载weather_info布局
         setContentView(R.layout.weather_info);
+        // 加载weather_info布局
+   //     setContentView(R.layout.land);
+        // 选出控件 按钮 文本框
+//        btn = (Button) findViewById(R.id.land);
 
+//        textUser = (EditText) findViewById(R.id.et_user);
+//        textPass = (EditText) findViewById(R.id.et_password);
+
+        // 刚开始设置按钮不可用
+        //btn.setEnabled(false);
+        // 不可用时设置按钮为灰色
+        //btn.setBackgroundColor(Color.parseColor("#B0C4DE"));
+        // 字体颜色也设置为灰色
+        //btn.setTextColor(Color.parseColor("#708090"));
+        // 为按钮设置点击事件
+        //btn.setOnClickListener(this);
         // 为更新按钮添加点击事件
         mUpdateBtn = (ImageView) findViewById(R.id.title_update_btn);
         mUpdateBtn.setOnClickListener(this);
@@ -128,13 +154,73 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         mCitySelect.setOnClickListener(this);
         // 初始化控件
         initView();
+        // 给按钮添加change事件
+//        textUser.addTextChangedListener(new TextWatcher() {
+//            @Override
+//            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+//                Log.d("s: ", s.toString());
+//                Log.d("start: ", s.toString());
+//                Log.d("count: ", s.toString());
+//                Log.d("after: ", s.toString());
+//                return ;
+//            }
+//
+//            @Override
+//            public void onTextChanged(CharSequence s, int start, int before, int count) {
+//
+//                return ;
+//            }
+//
+//            @Override
+//            public void afterTextChanged(Editable s) {
+//                btn.setEnabled(s.length() >= 6 && textUser.getText().toString().length() >= 4);
+//                return ;
+//            }
+//        });
+
+//        textPass.addTextChangedListener(new TextWatcher() {
+//            @Override
+//            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+//                return ;
+//            }
+//
+//            @Override
+//            public void onTextChanged(CharSequence s, int start, int before, int count) {
+//
+//            }
+//
+//            @Override
+//            public void afterTextChanged(Editable s) {
+//                btn.setEnabled(s.length() >= 6 && textUser.getText().toString().length() >= 4);
+//                Log.d("Editable", s.toString());
+//                return ;
+//            }
+//        });
     }
     /**
      * 更新按钮的点击事件
      * */
     @Override
     public void onClick(View view) {
-
+//          if(view.getId() == R.id.land) {
+//              EditText textUser = (EditText) findViewById(R.id.et_user);
+//              EditText textPass = (EditText) findViewById(R.id.et_password);
+//              Log.d("user", textUser.getText().toString());
+//              Log.d("password", textPass.getText().toString());
+//              // admin | admin888
+//              if(textUser.getText().toString().equals("admin") && textPass.getText().toString().equals("admin888")) {
+//                  // 跳转到Second活动
+//                  Intent intent = new Intent(MainActivity.this, Second.class);
+//                  Log.d("type", intent.toString());
+//                  startActivityForResult(intent, 1);
+//                  Log.d("type", intent.toString());
+//                  Toast.makeText(MainActivity.this, "登陆成功", Toast.LENGTH_LONG).show();
+//              }else {
+//                  Toast.makeText(MainActivity.this, "登陆失败！", Toast.LENGTH_LONG).show();
+//              }
+//              Intent intent = new Intent(MainActivity.this, Second.class);
+//              startActivityForResult(intent, 1);
+//          }
         if(view.getId() == R.id.title_city_manager) {
             Intent i = new Intent(this, SelectCity.class);
             // 切换到选择城市界面
@@ -389,6 +475,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 break;
         }
     }
+    // 接收选择地址销毁之后，传来的消息
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if(requestCode == 1 && resultCode == RESULT_OK) {
             String newCityCode = data.getStringExtra("cityCode");
@@ -403,4 +490,16 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
         }
     }
+//    @Override
+//    protected  void onActivityResult(int requestCode, int resultCode, Intent data) {
+//        switch (requestCode) {
+//            case 1:
+//                if(resultCode == RESULT_OK) {
+//                    String returnDate = data.getStringExtra("data_result");
+//                    Toast.makeText(MainActivity.this, returnDate, Toast.LENGTH_LONG).show();
+//                }
+//                break;
+//            default:
+//        }
+//    }
 }

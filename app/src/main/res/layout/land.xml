@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="@dimen/_12dp"
+    tools:context="com.example.a17289.weather.MainActivity">
+    <!-- RelativeLayout:
+        相对布局：其子级控件按照相对位置摆放
+        子级控件默认属性：
+            android:layout_alignParentLeft="true"
+            android:layout_alignParentTop="true"
+            通用属性：
+            layout_centerHorizontal 水平居中
+            layout_marginTop 外边距 单位dp
+
+            android:layout_alignBottom="@+id/" 跟哪个控件底部对其
+            android:layout_alignRight="@+id/" 跟哪个控件右边对其
+
+            layout_alignBaseline 文件基线对其
+    -->
+    <ImageView
+        android:id="@+id/iv_icon"
+        android:src="@mipmap/qq"
+        android:layout_centerHorizontal="true"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        />
+    <TextView
+        android:id="@+id/tv_user"
+        android:text="@string/tx_user"
+        android:textSize="@dimen/_24dp"
+        android:layout_below="@+id/iv_icon"
+        android:layout_marginTop="@dimen/_12dp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
+
+    <EditText
+        android:id="@+id/et_user"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="@string/input_user"
+        android:layout_alignBaseline="@+id/tv_user"
+        android:layout_toRightOf="@+id/tv_user"
+        />
+
+    <TextView
+        android:id="@+id/tv_password"
+        android:text="@string/tx_password"
+        android:textSize="@dimen/_24dp"
+        android:layout_below="@+id/tv_user"
+        android:layout_marginTop="@dimen/_12dp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
+
+    <EditText
+        android:id="@+id/et_password"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="@string/input_password"
+        android:layout_alignBaseline="@+id/tv_password"
+        android:layout_toRightOf="@+id/tv_password"
+        />
+    <Button
+        android:id="@+id/land"
+        android:text="@string/check_in"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/et_password"
+        android:textColor="@drawable/button_selector_color"
+        android:background="@drawable/button_selector_background"
+        >
+    </Button>
+</RelativeLayout>

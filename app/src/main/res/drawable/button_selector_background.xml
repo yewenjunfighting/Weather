@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:Android="http://schemas.android.com/apk/res/android">
+    <!--按下的时候背景变为黑色-->
+    <item Android:drawable="@color/colorButtonPress_background" Android:state_pressed="true"/>
+    <!--当按钮不可用时,显示为灰色-->
+    <item Android:state_enabled="false" Android:drawable="@color/gray"/>
+    <!--当按钮可用时-->
+    <item Android:state_enabled="true" Android:drawable="@color/colorButtonPress_color"/>
+</selector>
