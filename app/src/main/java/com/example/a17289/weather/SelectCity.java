@@ -162,9 +162,9 @@ public class SelectCity extends Activity implements View.OnClickListener {
                 Date now = new Date();
                 Log.d("time: ", now.getTime() + "");
                 // 节流操作
-                if(now.getTime() - SelectCity.start.getTime() >= 500) {
+                if(now.getTime() - SelectCity.start.getTime() >= 100) {
                     SelectCity.start = new Date(now.getTime());
-                    Log.d("触发频率", "500毫秒触发一次");
+                    Log.d("触发频率", "100毫秒触发一次");
                     filterData(s.toString());
                 }
             }
