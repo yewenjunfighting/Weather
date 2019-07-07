@@ -233,7 +233,6 @@
                     android:layout_marginLeft="5dip"
                     android:layout_toRightOf="@id/weather_img"
                     android:maxLines="1"
-                    android:text="当前温度:5℃"
                     android:textColor="@android:color/white"
                     android:textSize="30.0sp"/>
             </RelativeLayout>

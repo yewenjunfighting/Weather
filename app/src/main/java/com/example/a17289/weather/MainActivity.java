@@ -2,15 +2,29 @@ package com.example.a17289.weather;
 
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.location.Location;
 import android.media.Image;
 import android.os.Handler;
 import android.os.Message;
+import android.preference.PreferenceManager;
+import android.provider.Settings;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 
+import com.baidu.location.BDAbstractLocationListener;
+import com.baidu.location.BDLocation;
+import com.baidu.location.BDLocationListener;
+import com.baidu.location.LocationClient;
+import com.baidu.location.LocationClientOption;
+import com.baidu.mapapi.map.BaiduMap;
 import com.example.a17289.bean.TodayWeather;
+import com.example.a17289.gson.Weather;
 import com.example.a17289.util.NetUtil;
+import com.google.gson.Gson;
 
 import android.text.Editable;
 import android.text.Html;
@@ -23,6 +37,8 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.util.Log;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.w3c.dom.Text;
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
@@ -35,6 +51,21 @@ import java.io.InputStreamReader;
 import java.io.StringReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Locale;
+import android.Manifest;
+import java.util.logging.SimpleFormatter;
+
+import okhttp3.Call;
+import okhttp3.Callback;
+import okhttp3.FormBody;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
 
 // dp * ppi / 160 = px
 // mdpi -> 160
@@ -43,10 +74,13 @@ import java.net.URL;
 // xxdpi -> 480
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
+    // 用于定位
+    private LocationClient mLocationClient;
     private EditText textUser;
     private EditText textPass;
     private String currentCityCode = "101010800";
     private static final int UPDATE_TODAY_WEATHER = 1;
+    private static final int UPDATE_XMLTODAY_WEATHER = 2;
     private static final String WEATHER_BAOXUE = "暴雪";
     private static final String WEATHER_BAOYU = "暴雨";
     private static final String WEATHER_DABAOYU = "大暴雨";
@@ -71,17 +105,31 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private ImageView mUpdateBtn;
     private ImageView mCitySelect;
     private Button btn;
-    private TextView cityTv, timeTv, humidityTv, weekTv, pmDataTv, pmQualityTv,
-            temperatureTv, climateTv, windTv, city_name_Tv;
+    private Handler handler;
+    private TextView cityTv,
+                     timeTv,
+                     humidityTv,
+                     weekTv,
+                     pmDataTv,
+                     pmQualityTv,
+                     temperatureTv,
+                     climateTv,
+                     windTv,
+                     city_name_Tv,
+                    current_temperature;
     private ImageView weatherImg, pmImg;
 
     // 通过消息机制来更新UI界面的数据
     // 主线程将接收消息
-    private Handler mHander = new Handler() {
-        public void handleMessage(android.os.Message msg) {
+    class InnerHandler extends Handler{
+        public void handleMessage(Message msg) {
+            super.handleMessage(msg);
             switch(msg.what) {
                 case UPDATE_TODAY_WEATHER:
-                    updateTodayWeather((TodayWeather) msg.obj);
+                    updateTodayWeather((Weather) msg.obj);
+                    break;
+                case UPDATE_XMLTODAY_WEATHER:
+                    updateXMLTodayWeather((TodayWeather) msg.obj);
                     break;
                 default:
                     break;
@@ -103,7 +151,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         climateTv = (TextView) findViewById(R.id.climate);
         windTv = (TextView) findViewById(R.id.wind);
         weatherImg = (ImageView) findViewById(R.id.weather_img);
-
+        current_temperature = (TextView) findViewById(R.id.current_temperature);
         city_name_Tv.setText("N/A");
         cityTv.setText("N/A");
         timeTv.setText("N/A");
@@ -115,32 +163,40 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         temperatureTv.setText("N/A");
         climateTv.setText("N/A");
         windTv.setText("N/A");
+        handler = new InnerHandler();
         queryWeatherCode(currentCityCode);
+        queryXMLWeatherCode(currentCityCode);
     }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        //setContentView(R.layout.weather_info);
         setContentView(R.layout.weather_info);
-        // 加载weather_info布局
-   //     setContentView(R.layout.land);
-        // 选出控件 按钮 文本框
-//        btn = (Button) findViewById(R.id.land);
-
-//        textUser = (EditText) findViewById(R.id.et_user);
-//        textPass = (EditText) findViewById(R.id.et_password);
-
-        // 刚开始设置按钮不可用
-        //btn.setEnabled(false);
-        // 不可用时设置按钮为灰色
-        //btn.setBackgroundColor(Color.parseColor("#B0C4DE"));
-        // 字体颜色也设置为灰色
-        //btn.setTextColor(Color.parseColor("#708090"));
-        // 为按钮设置点击事件
-        //btn.setOnClickListener(this);
         // 为更新按钮添加点击事件
         mUpdateBtn = (ImageView) findViewById(R.id.title_update_btn);
         mUpdateBtn.setOnClickListener(this);
+        // 定位代码
+        mLocationClient = new LocationClient(getApplicationContext());
+        mLocationClient.registerLocationListener(new MyLocationListener());
+        List<String> permissionList = new ArrayList<>();
+        requestLocation();
+        if(ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            permissionList.add(Manifest.permission.ACCESS_FINE_LOCATION);
+        }
+        if(ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED) {
+            permissionList.add(Manifest.permission.READ_PHONE_STATE);
+        }
+        if(ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            permissionList.add(Manifest.permission.WRITE_EXTERNAL_STORAGE);
+        }
+        if(!permissionList.isEmpty()) {
+            Toast.makeText(MainActivity.this, "定位出问题了！", Toast.LENGTH_LONG).show();
+            String []permissions = permissionList.toArray(new String[permissionList.size()]);
+            ActivityCompat.requestPermissions(MainActivity.this, permissions, 1);
+        }else {
+            requestLocation();
+        }
 
         // 网络检测
         if(NetUtil.getNetworkState(this) != NetUtil.NETWORK_NONE) {
@@ -156,73 +212,83 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         mCitySelect.setOnClickListener(this);
         // 初始化控件
         initView();
-        // 给按钮添加change事件
-//        textUser.addTextChangedListener(new TextWatcher() {
-//            @Override
-//            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-//                Log.d("s: ", s.toString());
-//                Log.d("start: ", s.toString());
-//                Log.d("count: ", s.toString());
-//                Log.d("after: ", s.toString());
-//                return ;
-//            }
-//
-//            @Override
-//            public void onTextChanged(CharSequence s, int start, int before, int count) {
-//
-//                return ;
-//            }
-//
-//            @Override
-//            public void afterTextChanged(Editable s) {
-//                btn.setEnabled(s.length() >= 6 && textUser.getText().toString().length() >= 4);
-//                return ;
-//            }
-//        });
 
-//        textPass.addTextChangedListener(new TextWatcher() {
-//            @Override
-//            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-//                return ;
-//            }
-//
-//            @Override
-//            public void onTextChanged(CharSequence s, int start, int before, int count) {
-//
-//            }
-//
-//            @Override
-//            public void afterTextChanged(Editable s) {
-//                btn.setEnabled(s.length() >= 6 && textUser.getText().toString().length() >= 4);
-//                Log.d("Editable", s.toString());
-//                return ;
-//            }
-//        });
     }
+
+    private void requestLocation() {
+        Log.d("requestLocation", "start");
+        initLocation();
+        mLocationClient.start();
+    }
+    // 初始化定位
+    private void initLocation() {
+        LocationClientOption option = new LocationClientOption();
+        //option.setScanSpan(5000);
+
+        //option.setLocationMode(LocationClientOption.LocationMode.Device_Sensors);
+        // 把经纬度转换为看得懂的地址
+        option.setIsNeedAddress(true);
+        option.setIsNeedLocationDescribe(true);
+        //option.setOpenGps(true);
+        mLocationClient.setLocOption(option);
+        Log.d("addType", option.getAddrType().toString());
+    }
+
+    protected void onDestory() {
+        super.onDestroy();
+        mLocationClient.stop();
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        switch (requestCode) {
+            case 1:
+                if(grantResults.length > 0) {
+                    for(int result : grantResults) {
+                        if(result != PackageManager.PERMISSION_GRANTED) {
+                            Toast.makeText(this, "必须同意所有的权限才能使用本程序", Toast.LENGTH_SHORT).show();
+                            finish();
+                            return ;
+                        }
+                    }
+                    requestLocation();
+                }else {
+                    Toast.makeText(this, "发生未知错误", Toast.LENGTH_SHORT).show();
+                    finish();
+                }
+                break;
+            default:
+        }
+    }
+
+    public class MyLocationListener extends BDAbstractLocationListener{
+        @Override
+        public void onReceiveLocation(BDLocation location) {
+            StringBuilder currentPosition = new StringBuilder();
+            currentPosition.append("纬度: ").append(location.getLatitude()).append("\n");
+            currentPosition.append("经度: ").append(location.getLongitude()).append("\n");
+            currentPosition.append("国家: ").append(location.getCountry()).append("\n");
+            currentPosition.append("省: ").append(location.getProvince()).append("\n");
+            currentPosition.append("市: ").append(location.getCity()).append("\n");
+            currentPosition.append("城市编号: ").append(location.getCityCode()).append("\n");
+            currentPosition.append("区: ").append(location.getDirection()).append("\n");
+            currentPosition.append("街道: ").append(location.getStreet()).append("\n");
+            currentPosition.append("定位方式: ");
+            if(location.getLocType() == BDLocation.TypeGpsLocation) {
+                currentPosition.append("GPS");
+            }else if(location.getLocType() == BDLocation.TypeNetWorkLocation) {
+                currentPosition.append("网络");
+            }
+            Toast.makeText(MainActivity.this, currentPosition.toString(), Toast.LENGTH_LONG).show();
+            Log.d("position", currentPosition.toString());
+        }
+    }
+
     /**
      * 更新按钮的点击事件
      * */
     @Override
     public void onClick(View view) {
-//          if(view.getId() == R.id.land) {
-//              EditText textUser = (EditText) findViewById(R.id.et_user);
-//              EditText textPass = (EditText) findViewById(R.id.et_password);
-//              Log.d("user", textUser.getText().toString());
-//              Log.d("password", textPass.getText().toString());
-//              // admin | admin888
-//              if(textUser.getText().toString().equals("admin") && textPass.getText().toString().equals("admin888")) {
-//                  // 跳转到Second活动
-//                  Intent intent = new Intent(MainActivity.this, Second.class);
-//                  Log.d("type", intent.toString());
-//                  startActivityForResult(intent, 1);
-//                  Log.d("type", intent.toString());
-//                  Toast.makeText(MainActivity.this, "登陆成功", Toast.LENGTH_LONG).show();
-//              }else {
-//                  Toast.makeText(MainActivity.this, "登陆失败！", Toast.LENGTH_LONG).show();
-//              }
-//              Intent intent = new Intent(MainActivity.this, Second.class);
-//              startActivityForResult(intent, 1);
-//          }
         if(view.getId() == R.id.title_city_manager) {
             Intent i = new Intent(this, SelectCity.class);
             Log.d("currentCityName", city_name_Tv.getText().toString());
@@ -241,22 +307,92 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             //String cityCode = sharedPreferences.getString("main_city_code", "101160101");
             //Log.d("myWeather", cityCode);
             // 根据城市的编号查询天气情况
+            // 两个数据接口取长补短
             queryWeatherCode(currentCityCode);
+            queryXMLWeatherCode(currentCityCode);
         }
     }
+    // 解析返回的数据
+    public static Weather handleWeatherResponse(String response) {
+        try {
+            JSONObject jsonObject = new JSONObject(response);
+            JSONArray jsonArray = jsonObject.getJSONArray("HeWeather");
+            String weatherContent = jsonArray.getJSONObject(0).toString();
+            return new Gson().fromJson(weatherContent, Weather.class);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+    // 发送请求
+    public static void sendOkHttpRequest(String address, okhttp3.Callback callback) {
+        OkHttpClient client = new OkHttpClient();
+        Request request = new Request.Builder().url(address).build();
+        client.newCall(request).enqueue(callback);
+    }
 
+    public void queryWeatherCode(final String weatherId) {
+        String weatherUrl = "http://guolin.tech/api/weather?cityid=CN" + weatherId + "&key=bc0418b57b2d4918819d3974ac1285d9";
+        sendOkHttpRequest(weatherUrl, new Callback() {
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                final String responseText = response.body().string();
+                Log.d("responseText", responseText);
+                final Weather weather = handleWeatherResponse(responseText);
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (weather != null && "ok".equals(weather.status)) {
+                            SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(MainActivity.this).edit();
+                            editor.putString("weather", responseText);
+                            editor.apply();
+                            //mWeatherId = weather.basic.weatherId;
+                            //showWeatherInfo(weather);
+                            Log.d("cityName", weather.basic.cityName);
+                            Log.d("weatherId", weather.basic.weatherId);
+                            Log.d("update", weather.basic.update.toString());
+                            Log.d("aqi", weather.aqi.city.aqi);
+                            Log.d("pm25", weather.aqi.city.pm25);
+                            Log.d("temp", weather.now.temperature);
+                            Log.d("more", weather.now.more.info);
+                            Message msg = new Message();
+                            msg.what = 1;
+                            msg.obj = weather;
+                            handler.sendMessage(msg);
+                        } else {
+                            Toast.makeText(MainActivity.this, "获取天气信息失败", Toast.LENGTH_SHORT).show();
+                        }
+                        //swipeRefresh.setRefreshing(false);
+                    }
+                });
+            }
+
+            @Override
+            public void onFailure(Call call, IOException e) {
+                e.printStackTrace();
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(MainActivity.this, "获取天气信息失败", Toast.LENGTH_SHORT).show();
+                        //swipeRefresh.setRefreshing(false);
+                    }
+                });
+            }
+        });
+    }
     /**
      * @param cityCode
      * */
-    private void queryWeatherCode(String cityCode) {
+    private void queryXMLWeatherCode(final String cityCode) {
         // 请求到的是xml格式的数据
+        //final String address = "http://guolin.tech/api/weather";
         final String address = "http://wthrcdn.etouch.cn/WeatherApi?citykey=" + cityCode;
         Log.d("weather", address);
         new Thread(new Runnable() {
             @Override
             public void run() {
                 HttpURLConnection con = null;
-                TodayWeather todayWeather = null;
+                TodayWeather todayWeather;
                 try {
                     URL url = new URL(address);
                     con = (HttpURLConnection) url.openConnection();
@@ -275,20 +411,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     Log.d("weather", responseStr);
                     // 解析XML数据
                     todayWeather = parseXML(responseStr);
-                    if(todayWeather != null){
-                        Log.d("weather", todayWeather.toString());
-                        Message msg = new Message();
-                        msg.what = UPDATE_TODAY_WEATHER;
-                        msg.obj = todayWeather;
-                        // msg包含获取到的各种数据
-                        mHander.sendMessage(msg);
-                    }
+                    //updateXMLTodayWeather(todayWeather);
+                    Message msg = new Message();
+                    msg.obj = todayWeather;
+                    msg.what = 2;
+                    handler.sendMessage(msg);
                 }catch(Exception e) {
                     e.printStackTrace();
-                }finally {
-                    if(con != null) {
-                        con.disconnect();
-                    }
                 }
             }
         }).start();
@@ -395,25 +524,31 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         return todayWeather;
     }
 
-    void updateTodayWeather(TodayWeather todayWeather) {
-        city_name_Tv.setText(todayWeather.getCity()+"天气");
-        cityTv.setText(todayWeather.getCity());
-        timeTv.setText(todayWeather.getUpdatetime()+ "发布");
-        humidityTv.setText("湿度："+todayWeather.getShidu());
-        // pm25数据缺失
-        pmDataTv.setText(todayWeather.getPm25());
-        // quality数据缺失
-        pmQualityTv.setText(todayWeather.getQuality());
-        weekTv.setText(todayWeather.getDate());
-        temperatureTv.setText(todayWeather.getHigh()+"~"+todayWeather.getLow());
-        climateTv.setText(todayWeather.getType());
-        windTv.setText("风力:" + todayWeather.getFengli());
+    void updateTodayWeather(Weather todayWeather) {
+        city_name_Tv.setText(todayWeather.basic.cityName + "天气");
+        cityTv.setText(todayWeather.basic.cityName);
+        timeTv.setText(todayWeather.basic.update.updateTime + "发布");
+        current_temperature.setText("当前温度 " + todayWeather.now.temperature);
+        //humidityTv.setText("湿度：" + todayWeather.);
+        pmDataTv.setText(todayWeather.aqi.city.pm25);
+        pmQualityTv.setText(todayWeather.aqi.city.aqi);
+//        weekTv.setText(todayWeather.getDate());
+//        temperatureTv.setText(todayWeather.getHigh()+"~"+todayWeather.getLow());
+        climateTv.setText(todayWeather.now.more.info);
+//        windTv.setText("风力:" + todayWeather.getFengli());
         // 更新指示天气的图像
-        updateWeatherImg(todayWeather.getType());
+        updateWeatherImg(todayWeather.now.more.info);
 
         Toast.makeText(MainActivity.this,"更新成功！",Toast.LENGTH_SHORT).show();
     }
 
+    void updateXMLTodayWeather(TodayWeather todayWeather) {
+
+        humidityTv.setText("湿度：" + todayWeather.getShidu());
+        weekTv.setText(todayWeather.getDate());
+        temperatureTv.setText(todayWeather.getHigh()+"~"+todayWeather.getLow());
+        windTv.setText("风力:" + todayWeather.getFengli());
+    }
     void updateWeatherImg(String type) {
         switch(type) {
             case WEATHER_BAOXUE:
@@ -497,16 +632,4 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
         }
     }
-//    @Override
-//    protected  void onActivityResult(int requestCode, int resultCode, Intent data) {
-//        switch (requestCode) {
-//            case 1:
-//                if(resultCode == RESULT_OK) {
-//                    String returnDate = data.getStringExtra("data_result");
-//                    Toast.makeText(MainActivity.this, returnDate, Toast.LENGTH_LONG).show();
-//                }
-//                break;
-//            default:
-//        }
-//    }
 }
