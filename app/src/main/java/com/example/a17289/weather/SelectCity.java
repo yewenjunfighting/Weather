@@ -2,8 +2,6 @@ package com.example.a17289.weather;
 
 import android.app.Activity;
 import android.content.Intent;
-import android.media.Image;
-import android.media.ImageWriter;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextUtils;
@@ -16,10 +14,10 @@ import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
 
+import com.example.a17289.adapter.MyAdapter;
 import com.example.a17289.app.MyApplication;
 import com.example.a17289.bean.City;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -46,27 +44,6 @@ public class SelectCity extends Activity implements View.OnClickListener {
         setContentView(R.layout.select_city);
         // 初始化列表
         initViews();
-//        mClearEditText = (ClearEditText) findViewById(R.id.search_city);
-//
-//        mClearEditText.addTextChangedListener(new TextWatcher() {
-//            @Override
-//            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-//                return ;
-//            }
-//
-//            @Override
-//            public void onTextChanged(CharSequence s, int start, int before, int count) {
-//               // 当输入框里面的值为空,更新为原来的列表, 否则为过滤数据列表
-//                filterData(s.toString());
-//                mList.setAdapter(myadapter);
-//            }
-//
-//            @Override
-//            public void afterTextChanged(Editable s) {
-//               retutn ;
-//            }
-//        });
-
     }
 
     private void initViews() {

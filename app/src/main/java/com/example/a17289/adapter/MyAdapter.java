@@ -1,4 +1,4 @@
-package com.example.a17289.weather;
+package com.example.a17289.adapter;
 
 import android.content.Context;
 import android.view.LayoutInflater;
@@ -8,6 +8,7 @@ import android.widget.ArrayAdapter;
 import android.widget.TextView;
 
 import com.example.a17289.bean.City;
+import com.example.a17289.weather.R;
 
 import java.util.List;
 

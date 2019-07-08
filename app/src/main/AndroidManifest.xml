@@ -18,7 +18,7 @@
     <application
         android:name="com.example.a17289.app.MyApplication"
         android:allowBackup="true"
-        android:icon="@mipmap/qq"
+        android:icon="@drawable/logo"
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">

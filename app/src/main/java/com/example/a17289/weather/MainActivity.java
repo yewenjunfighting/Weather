@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.graphics.Rect;
 import android.location.Location;
 import android.media.Image;
 import android.os.Handler;
@@ -12,6 +13,7 @@ import android.preference.PreferenceManager;
 import android.provider.Settings;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
+import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 
@@ -21,18 +23,26 @@ import com.baidu.location.BDLocationListener;
 import com.baidu.location.LocationClient;
 import com.baidu.location.LocationClientOption;
 import com.baidu.mapapi.map.BaiduMap;
+import com.example.a17289.adapter.OtherWeatherAdapter;
+import com.example.a17289.bean.OtherDayWeather;
 import com.example.a17289.bean.TodayWeather;
+import com.example.a17289.gson.Forecast;
 import com.example.a17289.gson.Weather;
 import com.example.a17289.util.NetUtil;
 import com.google.gson.Gson;
 
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.text.Editable;
 import android.text.Html;
 import android.text.TextWatcher;
 import android.view.View;
+import android.view.ViewDebug;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.util.Log;
@@ -74,6 +84,28 @@ import okhttp3.Response;
 // xxdpi -> 480
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
+    // 六天天气显示
+    private List<OtherDayWeather> otherDayList = new ArrayList<>();
+    private LinearLayoutManager layoutManager;
+    // 显示两个展示页
+    // private ViewPagerAdapter vpAdapter;
+    private ViewPager vp;
+    private List<View> views;
+    //为引导页增加小圆点
+    private TextView
+            week_today,
+            temperature,
+            climate,
+            wind,
+            week_today1,
+            temperature1,
+            climate1,
+            wind1,
+            week_today2,
+            temperature2,
+            climate2,
+            wind2;
+
     // 用于定位
     private LocationClient mLocationClient;
     private EditText textUser;
@@ -101,7 +133,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private static final String WEATHER_ZHENYU = "阵雨";
     private static final String WEATHER_ZHONGXUE = "中雪";
     private static final String WEATHER_ZHONGYU = "中雨";
-
+    private RecyclerView recyclerView;
     private ImageView mUpdateBtn;
     private ImageView mCitySelect;
     private Button btn;
@@ -117,7 +149,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                      windTv,
                      city_name_Tv,
                     current_temperature;
-    private ImageView weatherImg, pmImg;
+    private ImageView
+            weatherImg,
+            pmImg;
 
     // 通过消息机制来更新UI界面的数据
     // 主线程将接收消息
@@ -166,6 +200,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         handler = new InnerHandler();
         queryWeatherCode(currentCityCode);
         queryXMLWeatherCode(currentCityCode);
+
     }
 
     @Override
@@ -300,14 +335,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
 
         if(view.getId() == R.id.title_update_btn) {
-            // SharedPreferences用于数据的存储与读取
-            ///SharedPreferences sharedPreferences = getSharedPreferences("config", MODE_PRIVATE);
-            //String cityCode = sharedPreferences.getString("main_city_code", "101010100");
-            // 太原城市代码
-            //String cityCode = sharedPreferences.getString("main_city_code", "101160101");
-            //Log.d("myWeather", cityCode);
-            // 根据城市的编号查询天气情况
-            // 两个数据接口取长补短
             queryWeatherCode(currentCityCode);
             queryXMLWeatherCode(currentCityCode);
         }
@@ -332,6 +359,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     public void queryWeatherCode(final String weatherId) {
+        Log.d("queryWeatherCode", "根据郭林的接口查询数据");
         String weatherUrl = "http://guolin.tech/api/weather?cityid=CN" + weatherId + "&key=bc0418b57b2d4918819d3974ac1285d9";
         sendOkHttpRequest(weatherUrl, new Callback() {
             @Override
@@ -525,17 +553,35 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     void updateTodayWeather(Weather todayWeather) {
+        otherDayList = new ArrayList<>();
+        Log.d("更新", "json数据------------------------------------------------------------------------------------");
         city_name_Tv.setText(todayWeather.basic.cityName + "天气");
         cityTv.setText(todayWeather.basic.cityName);
         timeTv.setText(todayWeather.basic.update.updateTime + "发布");
         current_temperature.setText("当前温度 " + todayWeather.now.temperature);
-        //humidityTv.setText("湿度：" + todayWeather.);
         pmDataTv.setText(todayWeather.aqi.city.pm25);
         pmQualityTv.setText(todayWeather.aqi.city.aqi);
-//        weekTv.setText(todayWeather.getDate());
-//        temperatureTv.setText(todayWeather.getHigh()+"~"+todayWeather.getLow());
         climateTv.setText(todayWeather.now.more.info);
-//        windTv.setText("风力:" + todayWeather.getFengli());
+        // 取出其它六天的天气
+        for(Forecast forecast : todayWeather.forecastList) {
+            OtherDayWeather other = new OtherDayWeather();
+            other.setDate(forecast.date);
+            other.setHigh(forecast.temperature.max);
+            other.setLow(forecast.temperature.min);
+            other.setType(forecast.more.info);
+            other.setImageId(updateWeatherImg(forecast.more.info));
+            otherDayList.add(other);
+            Log.d("六天天气", "----------------------------------------------------------------");
+            Log.d("date", forecast.date);
+            Log.d("type", forecast.more.info);
+        }
+        OtherWeatherAdapter adapter = new OtherWeatherAdapter(otherDayList);
+        layoutManager = new LinearLayoutManager(this);
+        layoutManager.setOrientation(LinearLayoutManager.HORIZONTAL);
+        recyclerView = (RecyclerView) findViewById(R.id.recycler_view);
+        recyclerView.setLayoutManager(layoutManager);
+        recyclerView.setAdapter(adapter);
+
         // 更新指示天气的图像
         updateWeatherImg(todayWeather.now.more.info);
 
@@ -549,71 +595,72 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         temperatureTv.setText(todayWeather.getHigh()+"~"+todayWeather.getLow());
         windTv.setText("风力:" + todayWeather.getFengli());
     }
-    void updateWeatherImg(String type) {
+    int updateWeatherImg(String type) {
         switch(type) {
             case WEATHER_BAOXUE:
                 weatherImg.setImageResource(R.drawable.biz_plugin_weather_baoxue);
-                break;
+                return R.drawable.biz_plugin_weather_baoxue;
             case WEATHER_BAOYU:
                 weatherImg.setImageResource(R.drawable.biz_plugin_weather_baoyu);
-                break;
+                return R.drawable.biz_plugin_weather_baoyu;
             case WEATHER_DABAOYU:
                 weatherImg.setImageResource(R.drawable.biz_plugin_weather_dabaoyu);
-                break;
+                return R.drawable.biz_plugin_weather_dabaoyu;
             case WEATHER_DAXUE:
                 weatherImg.setImageResource(R.drawable.biz_plugin_weather_daxue);
-                break;
+                return R.drawable.biz_plugin_weather_daxue;
             case WEATHER_DAYU:
                 weatherImg.setImageResource(R.drawable.biz_plugin_weather_dayu);
-                break;
+                return R.drawable.biz_plugin_weather_dayu;
             case WEATHER_DUOYUN:
                 weatherImg.setImageResource(R.drawable.biz_plugin_weather_duoyun);
-                break;
+                return R.drawable.biz_plugin_weather_duoyun;
             case WEATHER_LEIZHENYU:
                 weatherImg.setImageResource(R.drawable.biz_plugin_weather_leizhenyu);
-                break;
+                return R.drawable.biz_plugin_weather_leizhenyu;
             case WEATHER_LEIZHENYUBINGBAO:
                 weatherImg.setImageResource(R.drawable.biz_plugin_weather_leizhenyubingbao);
-                break;
+                return R.drawable.biz_plugin_weather_leizhenyubingbao;
             case WEATHER_QING:
                 weatherImg.setImageResource(R.drawable.biz_plugin_weather_qing);
-                break;
+                return R.drawable.biz_plugin_weather_qing;
             case WEATHER_SHACHENBAO:
                 weatherImg.setImageResource(R.drawable.biz_plugin_weather_shachenbao);
-                break;
+                return R.drawable.biz_plugin_weather_shachenbao;
             case WEATHER_TEDABAOYU:
                 weatherImg.setImageResource(R.drawable.biz_plugin_weather_tedabaoyu);
-                break;
+                return R.drawable.biz_plugin_weather_tedabaoyu;
             case WEATHER_WU:
                 weatherImg.setImageResource(R.drawable.biz_plugin_weather_wu);
-                break;
+                return R.drawable.biz_plugin_weather_wu;
             case WEATHER_XIAOXUE:
                 weatherImg.setImageResource(R.drawable.biz_plugin_weather_xiaoxue);
-                break;
+                return R.drawable.biz_plugin_weather_xiaoxue;
             case WEATHER_XIAOYU:
                 weatherImg.setImageResource(R.drawable.biz_plugin_weather_xiaoyu);
-                break;
+                return R.drawable.biz_plugin_weather_xiaoyu;
             case WEATHER_YIN:
                 weatherImg.setImageResource(R.drawable.biz_plugin_weather_yin);
-                break;
+                return R.drawable.biz_plugin_weather_yin;
             case WEATHER_YUJIAXUE:
                 weatherImg.setImageResource(R.drawable.biz_plugin_weather_yujiaxue);
-                break;
+                return R.drawable.biz_plugin_weather_yujiaxue;
             case WEATHER_ZHENXUE:
                 weatherImg.setImageResource(R.drawable.biz_plugin_weather_zhenxue);
-                break;
+                return R.drawable.biz_plugin_weather_zhenxue;
             case WEATHER_ZHENYU:
                 weatherImg.setImageResource(R.drawable.biz_plugin_weather_zhenyu);
-                break;
+                return R.drawable.biz_plugin_weather_zhenyu;
             case WEATHER_ZHONGXUE:
                 weatherImg.setImageResource(R.drawable.biz_plugin_weather_zhongxue);
-                break;
+                return R.drawable.biz_plugin_weather_zhongxue;
             case WEATHER_ZHONGYU:
                 weatherImg.setImageResource(R.drawable.biz_plugin_weather_zhongyu);
-                break;
+                return R.drawable.biz_plugin_weather_zhongyu;
             default:
                 break;
         }
+        return R.drawable.biz_plugin_weather_zhongyu;
     }
     // 接收选择地址销毁之后，传来的消息
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -626,6 +673,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             if(NetUtil.getNetworkState(this) != NetUtil.NETWORK_NONE) {
                 Log.d("weather", "网络ok");
                 queryWeatherCode(newCityCode);
+                queryXMLWeatherCode(newCityCode);
             }else {
                 Log.d("weather", "网络挂了");
                 Toast.makeText(MainActivity.this, "网络挂了! ", Toast.LENGTH_LONG).show();

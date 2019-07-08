@@ -7,7 +7,7 @@
         android:id="@+id/title"
         android:layout_width="fill_parent"
         android:layout_height="45.0dip"
-        android:background="#ffcd2626"
+        android:background="#ffeb3b"
         android:gravity="center_vertical">
         <ImageView
             android:id="@+id/title_city_manager"
@@ -57,7 +57,7 @@
         android:layout_width="fill_parent"
         android:layout_height="fill_parent"
         android:layout_below="@id/title"
-        android:background="@drawable/biz_plugin_weather_shenzhen_bg"
+        android:background="@drawable/bkq3"
         android:orientation="vertical">
         <!--今日天气信息-->
         <RelativeLayout
@@ -237,7 +237,20 @@
                     android:textSize="30.0sp"/>
             </RelativeLayout>
         </RelativeLayout>
-        <!--七日天气信息-->
+        <!--六日天气信息-->
+        <LinearLayout
+            android:id="@+id/sixDay_weather"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:padding="10.0dip">
+            <!--展示滑动页面-->
+            <android.support.v7.widget.RecyclerView
+                android:layout_height="fill_parent"
+                android:layout_width="fill_parent"
+                android:id="@+id/recycler_view"
+                >
+            </android.support.v7.widget.RecyclerView>
+        </LinearLayout>
         <!--广告等信息-->
     </LinearLayout>
 </RelativeLayout>
