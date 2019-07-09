@@ -1,6 +1,10 @@
 package com.example.a17289.weather;
 
+import android.app.AlarmManager;
+import android.app.PendingIntent;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
@@ -63,10 +67,15 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import android.Manifest;
+
+import java.util.TimeZone;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.logging.SimpleFormatter;
 
 import okhttp3.Call;
@@ -87,24 +96,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     // 六天天气显示
     private List<OtherDayWeather> otherDayList = new ArrayList<>();
     private LinearLayoutManager layoutManager;
+    // 定时任务
+    private Date startUpdate;
     // 显示两个展示页
     // private ViewPagerAdapter vpAdapter;
     private ViewPager vp;
     private List<View> views;
-    //为引导页增加小圆点
-    private TextView
-            week_today,
-            temperature,
-            climate,
-            wind,
-            week_today1,
-            temperature1,
-            climate1,
-            wind1,
-            week_today2,
-            temperature2,
-            climate2,
-            wind2;
 
     // 用于定位
     private LocationClient mLocationClient;
@@ -173,6 +170,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     // 初始化
     void initView() {
+        startUpdate = new Date();
         city_name_Tv = (TextView) findViewById(R.id.title_city_name);
         cityTv = (TextView) findViewById(R.id.city);
         timeTv = (TextView) findViewById(R.id.time);
@@ -200,7 +198,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         handler = new InnerHandler();
         queryWeatherCode(currentCityCode);
         queryXMLWeatherCode(currentCityCode);
-
+        // 开启定时更新线程
+        UpdateWeatherThread update = new UpdateWeatherThread();
+        update.start();
     }
 
     @Override
@@ -247,7 +247,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         mCitySelect.setOnClickListener(this);
         // 初始化控件
         initView();
-
     }
 
     private void requestLocation() {
@@ -258,7 +257,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     // 初始化定位
     private void initLocation() {
         LocationClientOption option = new LocationClientOption();
-        //option.setScanSpan(5000);
+        option.setScanSpan(5000);
 
         //option.setLocationMode(LocationClientOption.LocationMode.Device_Sensors);
         // 把经纬度转换为看得懂的地址
@@ -309,6 +308,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             currentPosition.append("区: ").append(location.getDirection()).append("\n");
             currentPosition.append("街道: ").append(location.getStreet()).append("\n");
             currentPosition.append("定位方式: ");
+            currentPosition.append("错误类型:").append(location.getLocType());
             if(location.getLocType() == BDLocation.TypeGpsLocation) {
                 currentPosition.append("GPS");
             }else if(location.getLocType() == BDLocation.TypeNetWorkLocation) {
@@ -677,6 +677,20 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }else {
                 Log.d("weather", "网络挂了");
                 Toast.makeText(MainActivity.this, "网络挂了! ", Toast.LENGTH_LONG).show();
+            }
+        }
+    }
+
+    // 定时更新数据的线程
+    class UpdateWeatherThread extends Thread {
+        public void run() {
+            while(true) {
+                if(new Date().getTime() - startUpdate.getTime() >= 10000) {
+                    Log.d("UpdateWeather", "每十秒更新一次");
+                    startUpdate = new Date();
+                    queryWeatherCode(currentCityCode);
+                    queryXMLWeatherCode(currentCityCode);
+                }
             }
         }
     }
