@@ -6,4 +6,5 @@
     <string name="input_password">请输入密码</string>
     <string name="check_in">登陆</string>
     <string name="search_word">搜索全国城市(中文)</string>
+    <string name="share">分享</string>
 </resources>

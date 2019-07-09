@@ -34,6 +34,7 @@ import com.example.a17289.gson.Forecast;
 import com.example.a17289.gson.Weather;
 import com.example.a17289.util.NetUtil;
 import com.google.gson.Gson;
+import com.mob.MobSDK;
 
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -78,6 +79,10 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.logging.SimpleFormatter;
 
+import cn.sharesdk.framework.Platform;
+import cn.sharesdk.framework.ShareSDK;
+import cn.sharesdk.onekeyshare.OnekeyShare;
+import cn.sharesdk.tencent.qq.QQ;
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.FormBody;
@@ -148,7 +153,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     current_temperature;
     private ImageView
             weatherImg,
-            pmImg;
+            pmImg,
+            title_location,
+            title_share;
 
     // 通过消息机制来更新UI界面的数据
     // 主线程将接收消息
@@ -170,6 +177,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     // 初始化
     void initView() {
+        title_share = (ImageView) findViewById(R.id.title_share);
+        title_location = (ImageView) findViewById(R.id.title_location);
         startUpdate = new Date();
         city_name_Tv = (TextView) findViewById(R.id.title_city_name);
         cityTv = (TextView) findViewById(R.id.city);
@@ -201,6 +210,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         // 开启定时更新线程
         UpdateWeatherThread update = new UpdateWeatherThread();
         update.start();
+        // 点击设置定位
+        title_location.setOnClickListener(this);
+        title_share.setOnClickListener(this);
     }
 
     @Override
@@ -208,6 +220,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         super.onCreate(savedInstanceState);
         //setContentView(R.layout.weather_info);
         setContentView(R.layout.weather_info);
+        MobSDK.init(this);
         // 为更新按钮添加点击事件
         mUpdateBtn = (ImageView) findViewById(R.id.title_update_btn);
         mUpdateBtn.setOnClickListener(this);
@@ -215,7 +228,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         mLocationClient = new LocationClient(getApplicationContext());
         mLocationClient.registerLocationListener(new MyLocationListener());
         List<String> permissionList = new ArrayList<>();
-        requestLocation();
+        //requestLocation();
         if(ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             permissionList.add(Manifest.permission.ACCESS_FINE_LOCATION);
         }
@@ -230,7 +243,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             String []permissions = permissionList.toArray(new String[permissionList.size()]);
             ActivityCompat.requestPermissions(MainActivity.this, permissions, 1);
         }else {
-            requestLocation();
+            // requestLocation();
         }
 
         // 网络检测
@@ -249,15 +262,38 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         initView();
     }
 
+    // 一键分享
+    private void showShare() {
+        OnekeyShare oks = new OnekeyShare();
+        //关闭sso授权
+        oks.disableSSOWhenAuthorize();
+
+        // title标题，微信、QQ和QQ空间等平台使用
+        oks.setTitle(getString(R.string.share));
+        // titleUrl QQ和QQ空间跳转链接
+        oks.setTitleUrl("http://sharesdk.cn");
+        // text是分享文本，所有平台都需要这个字段
+        oks.setText("我是分享文本");
+        // imagePath是图片的本地路径，Linked-In以外的平台都支持此参数
+        // oks.setImagePath("/sdcard/test.jpg");//确保SDcard下面存在此张图片
+        // url在微信、微博，Facebook等平台中使用
+        oks.setUrl("http://sharesdk.cn");
+        // comment是我对这条分享的评论，仅在人人网使用
+        oks.setComment("我是测试评论文本");
+        // 启动分享GUI
+        oks.show(this);
+    }
+
+
     private void requestLocation() {
-        Log.d("requestLocation", "start");
+        // Log.d("requestLocation", "start");
         initLocation();
         mLocationClient.start();
     }
     // 初始化定位
     private void initLocation() {
         LocationClientOption option = new LocationClientOption();
-        option.setScanSpan(5000);
+        //option.setScanSpan(5000);
 
         //option.setLocationMode(LocationClientOption.LocationMode.Device_Sensors);
         // 把经纬度转换为看得懂的地址
@@ -285,7 +321,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                             return ;
                         }
                     }
-                    requestLocation();
+                    //requestLocation();
                 }else {
                     Toast.makeText(this, "发生未知错误", Toast.LENGTH_SHORT).show();
                     finish();
@@ -298,6 +334,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public class MyLocationListener extends BDAbstractLocationListener{
         @Override
         public void onReceiveLocation(BDLocation location) {
+            // 获取当前城市编号, 并请求数据
+            currentCityCode = "101210101";
+            queryWeatherCode(currentCityCode);
+            queryXMLWeatherCode(currentCityCode);
             StringBuilder currentPosition = new StringBuilder();
             currentPosition.append("纬度: ").append(location.getLatitude()).append("\n");
             currentPosition.append("经度: ").append(location.getLongitude()).append("\n");
@@ -307,13 +347,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             currentPosition.append("城市编号: ").append(location.getCityCode()).append("\n");
             currentPosition.append("区: ").append(location.getDirection()).append("\n");
             currentPosition.append("街道: ").append(location.getStreet()).append("\n");
-            currentPosition.append("定位方式: ");
-            currentPosition.append("错误类型:").append(location.getLocType());
             if(location.getLocType() == BDLocation.TypeGpsLocation) {
                 currentPosition.append("GPS");
             }else if(location.getLocType() == BDLocation.TypeNetWorkLocation) {
                 currentPosition.append("网络");
             }
+
             Toast.makeText(MainActivity.this, currentPosition.toString(), Toast.LENGTH_LONG).show();
             Log.d("position", currentPosition.toString());
         }
@@ -333,10 +372,24 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             //startActivity(i);
             startActivityForResult(i, 1);
         }
-
+        // 点击更新, 重新获取数据
         if(view.getId() == R.id.title_update_btn) {
             queryWeatherCode(currentCityCode);
             queryXMLWeatherCode(currentCityCode);
+        }
+
+        // 点击定位, 获取所在地点的天气信息
+        if(view.getId() == R.id.title_location) {
+            // 开始定位
+            Toast.makeText(MainActivity.this, "开始定位", Toast.LENGTH_LONG).show();
+            //mLocationClient.start();
+            requestLocation();
+        }
+
+        // 一键分享
+        if(view.getId() == R.id.title_share) {
+            Log.d("show", "一键分享------------------------------------------------------");
+            showShare();
         }
     }
     // 解析返回的数据
@@ -388,7 +441,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                             msg.obj = weather;
                             handler.sendMessage(msg);
                         } else {
-                            Toast.makeText(MainActivity.this, "获取天气信息失败", Toast.LENGTH_SHORT).show();
+                            //Toast.makeText(MainActivity.this, "获取天气信息失败", Toast.LENGTH_SHORT).show();
                         }
                         //swipeRefresh.setRefreshing(false);
                     }
