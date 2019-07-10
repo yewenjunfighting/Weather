@@ -414,6 +414,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public void queryWeatherCode(final String weatherId) {
         Log.d("queryWeatherCode", "根据郭林的接口查询数据");
         String weatherUrl = "http://guolin.tech/api/weather?cityid=CN" + weatherId + "&key=bc0418b57b2d4918819d3974ac1285d9";
+        Log.d("guolin", weatherUrl);
         sendOkHttpRequest(weatherUrl, new Callback() {
             @Override
             public void onResponse(Call call, Response response) throws IOException {
@@ -441,9 +442,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                             msg.obj = weather;
                             handler.sendMessage(msg);
                         } else {
-                            //Toast.makeText(MainActivity.this, "获取天气信息失败", Toast.LENGTH_SHORT).show();
+                           // Toast.makeText(MainActivity.this, "获取天气信息失败", Toast.LENGTH_SHORT).show();
                         }
-                        //swipeRefresh.setRefreshing(false);
+                        // swipeRefresh.setRefreshing(false);
                     }
                 });
             }
@@ -454,8 +455,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        Toast.makeText(MainActivity.this, "获取天气信息失败", Toast.LENGTH_SHORT).show();
-                        //swipeRefresh.setRefreshing(false);
+                        // Toast.makeText(MainActivity.this, "获取天气信息失败", Toast.LENGTH_SHORT).show();
+                        // swipeRefresh.setRefreshing(false);
                     }
                 });
             }

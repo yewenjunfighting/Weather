@@ -65,7 +65,7 @@ public class SelectCity extends Activity implements View.OnClickListener {
         // 保存当前的城市名称
         currentCityName = intent.getStringExtra("currentCityName");
         // 设置当前的标题
-        title.setText("当前城市 " + currentCityName.substring(0, 2));
+        title.setText("当前城市 " + currentCityName.substring(0, currentCityName.length() - 2));
 
         // 获得ArrayList<City>类型的数据列表
         cityList = myApplication.getCityList();
@@ -116,7 +116,7 @@ public class SelectCity extends Activity implements View.OnClickListener {
         }else{
             filterDateList.clear();
             for(City city : cityList) {
-                if(city.getCity().indexOf(filterStr.toString()) != -1) {
+                if(city.getCity().contains(filterStr)) {
                     filterDateList.add(city);
                 }
             }
