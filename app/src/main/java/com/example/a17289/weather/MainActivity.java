@@ -353,7 +353,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 currentPosition.append("网络");
             }
 
-            Toast.makeText(MainActivity.this, currentPosition.toString(), Toast.LENGTH_LONG).show();
+            //Toast.makeText(MainActivity.this, currentPosition.toString(), Toast.LENGTH_LONG).show();
             Log.d("position", currentPosition.toString());
         }
     }

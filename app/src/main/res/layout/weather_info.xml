@@ -20,7 +20,7 @@
             android:layout_height="40dip"
             android:layout_marginTop="2.0dip"
             android:layout_toRightOf="@id/title_city_manager"
-            android:background="#A71717"/>
+            android:background="#ccb82e"/>
         <TextView
             android:id="@+id/title_city_name"
             android:layout_width="fill_parent"
