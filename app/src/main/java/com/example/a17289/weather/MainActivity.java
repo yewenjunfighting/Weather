@@ -420,6 +420,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             public void onResponse(Call call, Response response) throws IOException {
                 final String responseText = response.body().string();
                 Log.d("responseText", responseText);
+                // 如果该城市编号没有对应的天气信息
+                if(!responseText.contains("{")) {
+                    return ;
+                }
                 final Weather weather = handleWeatherResponse(responseText);
                 runOnUiThread(new Runnable() {
                     @Override
